@@ -8,7 +8,7 @@ export default function Home({ recipes }) {
       <section>
         {recipes.map((recipe, i) => (
           <div key={i}>
-            <Link to="/recipe-page" className="link">
+            <Link to={`/recipe-page/${recipe.docId}`} className="link">
               <h3 className="mt-3">{recipe.name}</h3>
             </Link>
             <p>{recipe.description}</p>

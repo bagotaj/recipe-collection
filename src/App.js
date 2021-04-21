@@ -14,6 +14,7 @@ import db from './firebase/db';
 import Home from './components/Home';
 import CreateRecipe from './components/CreateRecipe';
 import RecipePage from './components/RecipePage';
+import EditRecipe from './components/EditRecipe';
 
 function App() {
   const [recipes, setRecipes] = useState([]);
@@ -23,13 +24,13 @@ function App() {
     const unsubscribe = db.collection('recipes').onSnapshot((snapshot) => {
       const data = [];
 
-      snapshot.docs.forEach((product) => {
-        const docItem = product.data();
+      snapshot.docs.forEach((recipe) => {
+        const docItem = recipe.data();
 
-        if (product.id === 'valid-units') {
+        if (recipe.id === 'valid-units') {
           setUnits(docItem);
         } else {
-          docItem['docId'] = product.id;
+          docItem['docId'] = recipe.id;
 
           data.push(docItem);
         }
@@ -85,8 +86,11 @@ function App() {
         </header>
         <main className="container mt-5">
           <Switch>
-            <Route path="/recipe-page">
-              <RecipePage units={units} />
+            <Route path="/edit-recipe/:id">
+              <EditRecipe />
+            </Route>
+            <Route path="/recipe-page/:id">
+              <RecipePage />
             </Route>
             <Route path="/create-recipe">
               <CreateRecipe units={units} />

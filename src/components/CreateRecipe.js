@@ -199,11 +199,11 @@ export default function CreateRecipe({ units }) {
             description: '',
             ingredients: '',
           });
-          setFormAlertText('Sikeres mentés.');
+          setFormAlertText('Successful saving');
           setFormAlertType('success');
         });
     } else {
-      setFormAlertText('Sikertelen mentés.');
+      setFormAlertText('Unsuccessful saving');
       setFormAlertType('danger');
     }
   }
@@ -253,6 +253,11 @@ export default function CreateRecipe({ units }) {
           handleInputChange={handleInputChange}
           required={true}
         />
+        {formAlertText && (
+          <div className={`alert mt-3 alert-${formAlertType}`} role="alert">
+            {formAlertText}
+          </div>
+        )}
         <button className="btn btn-primary">Create</button>
       </form>
     </div>
