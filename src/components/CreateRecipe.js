@@ -5,10 +5,17 @@ import TextareaField from './TextareaField';
 
 import db from '../firebase/db';
 
-export default function CreateRecipe() {
+export default function CreateRecipe({ units }) {
   const [fieldValues, setFieldValues] = useState({
     name: '',
     description: '',
+    ingredients: '',
+  });
+
+  const [fieldValuesToDatabase, setFieldValuesToDatabase] = useState({
+    name: '',
+    description: '',
+    ingredients: '',
   });
 
   const [formWasValidated, setFormWasValidated] = useState(false);
@@ -19,11 +26,13 @@ export default function CreateRecipe() {
   const references = {
     name: useRef(),
     description: useRef(),
+    ingredients: useRef(),
   };
 
   const [errors, setErrors] = useState({
     name: '',
     description: '',
+    ingredients: '',
   });
 
   const validators = {
@@ -33,14 +42,82 @@ export default function CreateRecipe() {
     description: {
       required: isNotEmpty,
     },
+    ingredients: {
+      required: isNotEmpty,
+      unitChecker: isUnitExistAndSetIngredients,
+    },
   };
 
   function isNotEmpty(value) {
     return value !== '';
   }
 
+  function isUnitExistAndSetIngredients(value) {
+    let lines = value.split(/\n/);
+    let partsOfValue = lines.map((line) => line.split(' '));
+    let unitsExist;
+    let ingredients = [];
+
+    for (let i = 0; i < partsOfValue.length; i++) {
+      let number = partsOfValue[i][0];
+      let result = 0;
+
+      if (number.includes('/')) {
+        let split = number.split('/');
+        result = parseInt(split[0], 10) / parseInt(split[1], 10);
+      } else {
+        result = parseInt(number);
+      }
+
+      if (Number(result)) {
+        if (units.units.includes(partsOfValue[i][1])) {
+          let name = partsOfValue[i].slice(2);
+
+          if (name.length > 1) {
+            name = name.join(' ').replace(/,/g, ' ');
+          }
+
+          ingredients.push({
+            amount: partsOfValue[i][0],
+            unit: partsOfValue[i][1],
+            name: name.toString(),
+          });
+
+          unitsExist = true;
+        } else {
+          unitsExist = false;
+          return;
+        }
+      } else {
+        if (units.units.includes(partsOfValue[i][0])) {
+          unitsExist = false;
+          return;
+        } else {
+          let name = partsOfValue[i].join(' ').replace(/,/g, ' ');
+
+          ingredients.push({
+            amount: partsOfValue[i][0],
+            unit: partsOfValue[i][1],
+            name: name.toString(),
+          });
+
+          unitsExist = true;
+        }
+      }
+    }
+
+    setFieldValuesToDatabase({
+      name: fieldValues.name,
+      description: fieldValues.description,
+      ingredients: ingredients,
+    });
+
+    return unitsExist;
+  }
+
   const errorTypes = {
-    required: 'Hiányzó érték.',
+    required: 'Missing value',
+    unitChecker: 'Bad unit added',
   };
 
   function isFormValid() {
@@ -110,14 +187,17 @@ export default function CreateRecipe() {
 
     if (isValid) {
       db.collection('recipes')
-        .add({
-          name: fieldValues.name,
-          description: fieldValues.description,
-        })
+        .add(fieldValuesToDatabase)
         .then((docRef) => {
+          setFieldValuesToDatabase({
+            name: '',
+            description: '',
+            ingredients: '',
+          });
           setFieldValues({
             name: '',
             description: '',
+            ingredients: '',
           });
           setFormAlertText('Sikeres mentés.');
           setFormAlertType('success');
@@ -150,7 +230,7 @@ export default function CreateRecipe() {
           required={true}
         />
         <TextareaField
-          reference={references.name}
+          reference={references.description}
           name="description"
           labelText="Description"
           rows="3"
@@ -161,6 +241,19 @@ export default function CreateRecipe() {
           handleInputChange={handleInputChange}
           required={true}
         />
+        <TextareaField
+          reference={references.ingredients}
+          name="ingredients"
+          labelText="Ingredients"
+          rows="6"
+          cols="30"
+          errors={errors}
+          fieldValues={fieldValues}
+          handleInputBlur={handleInputBlur}
+          handleInputChange={handleInputChange}
+          required={true}
+        />
+        <button className="btn btn-primary">Create</button>
       </form>
     </div>
   );
