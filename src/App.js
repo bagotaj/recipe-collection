@@ -87,7 +87,7 @@ function App() {
         <main className="container mt-5">
           <Switch>
             <Route path="/edit-recipe/:id">
-              <EditRecipe />
+              <EditRecipe units={units} />
             </Route>
             <Route path="/recipe-page/:id">
               <RecipePage />
