@@ -5,20 +5,16 @@ import TextareaField from './TextareaField';
 
 import db from '../firebase/db';
 
-export default function CreateRecipe({ units }) {
+export default function CreateRecipe({ units, categories }) {
   const [fieldValues, setFieldValues] = useState({
     name: '',
     description: '',
     ingredients: '',
     category: '',
+    category2: '',
   });
 
-  const [fieldValuesToDatabase, setFieldValuesToDatabase] = useState({
-    name: '',
-    description: '',
-    ingredients: [],
-    category: '',
-  });
+  const [ingredients, setIngredients] = useState([]);
 
   const [formWasValidated, setFormWasValidated] = useState(false);
 
@@ -30,6 +26,7 @@ export default function CreateRecipe({ units }) {
     description: useRef(),
     ingredients: useRef(),
     category: useRef(),
+    category2: useRef(),
   };
 
   const [errors, setErrors] = useState({
@@ -84,11 +81,19 @@ export default function CreateRecipe({ units }) {
             name = name.join(' ').replace(/,/g, ' ');
           }
 
-          ingredients.push({
-            amount: partsOfValue[i][0],
-            unit: partsOfValue[i][1],
-            name: name.toString(),
-          });
+          if (partsOfValue[i][1] === undefined) {
+            ingredients.push({
+              amount: partsOfValue[i][0],
+              unit: '',
+              name: name.toString(),
+            });
+          } else {
+            ingredients.push({
+              amount: partsOfValue[i][0],
+              unit: partsOfValue[i][1],
+              name: name.toString(),
+            });
+          }
 
           unitsExist = true;
         } else {
@@ -102,23 +107,26 @@ export default function CreateRecipe({ units }) {
         } else {
           let name = partsOfValue[i].join(' ').replace(/,/g, ' ');
 
-          ingredients.push({
-            amount: partsOfValue[i][0],
-            unit: partsOfValue[i][1],
-            name: name.toString(),
-          });
+          if (partsOfValue[i][1] === undefined) {
+            ingredients.push({
+              amount: partsOfValue[i][0],
+              unit: '',
+              name: name.toString(),
+            });
+          } else {
+            ingredients.push({
+              amount: partsOfValue[i][0],
+              unit: partsOfValue[i][1],
+              name: name.toString(),
+            });
+          }
 
           unitsExist = true;
         }
       }
     }
 
-    setFieldValuesToDatabase({
-      name: fieldValues.name,
-      description: fieldValues.description,
-      ingredients: ingredients,
-      category: fieldValues.category,
-    });
+    setIngredients(ingredients);
 
     return unitsExist;
   }
@@ -153,6 +161,11 @@ export default function CreateRecipe({ units }) {
       )) {
         if (isValid) {
           isValid = validatorFn(value);
+
+          if (fieldValues.category2 !== '' && isValid === false) {
+            isValid = true;
+          }
+
           if (!isValid) {
             const errorText = errorTypes[validationType];
             setErrors((previousErrors) => {
@@ -185,7 +198,11 @@ export default function CreateRecipe({ units }) {
 
   function handleInputBlur(e) {
     const name = e.target.name;
-    validateField(name);
+    if (name === 'category2') {
+      return;
+    } else {
+      validateField(name);
+    }
   }
 
   function handleSubmit(e) {
@@ -195,19 +212,20 @@ export default function CreateRecipe({ units }) {
 
     if (isValid) {
       db.collection('recipes')
-        .add(fieldValuesToDatabase)
+        .add({
+          name: fieldValues.name,
+          description: fieldValues.description,
+          ingredients: ingredients,
+          category: fieldValues.category2,
+        })
         .then((docRef) => {
-          setFieldValuesToDatabase({
-            name: '',
-            description: '',
-            ingredients: [],
-            category: '',
-          });
+          setIngredients([]);
           setFieldValues({
             name: '',
             description: '',
             ingredients: '',
             category: '',
+            category2: '',
           });
           setFormAlertText('Successful saving');
           setFormAlertType('success');
@@ -266,9 +284,17 @@ export default function CreateRecipe({ units }) {
         <div
           className={`mb-3 ${errors.category !== '' ? 'was-validated' : ''}`}
         >
-          <label htmlFor="category" className="form-label m-2">
-            Category
-          </label>
+          <InputField
+            reference={references.category2}
+            name="category2"
+            labelText="Category"
+            type="text"
+            errors={errors}
+            fieldValues={fieldValues}
+            handleInputBlur={handleInputBlur}
+            handleInputChange={handleInputChange}
+            required={true}
+          />
           <select
             name="category"
             id="category"
@@ -280,12 +306,11 @@ export default function CreateRecipe({ units }) {
             required={true}
           >
             <option value={''}>Choose!</option>
-            <option value="hungarian">Hungarian</option>
-            <option value="german">German</option>
-            <option value="french">French</option>
-            <option value="british">British</option>
-            <option value="mongolian">Mongolian</option>
-            <option value="chinese">Chinese</option>
+            {categories.map((category, i) => (
+              <option key={category + i} value={category}>
+                {category}
+              </option>
+            ))}
           </select>
           <div className="invalid-feedback">{errors.category}</div>
         </div>
