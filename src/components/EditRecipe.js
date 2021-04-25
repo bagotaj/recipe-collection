@@ -1,20 +1,47 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 
 import InputField from './InputField';
 import TextareaField from './TextareaField';
 
 import db from '../firebase/db';
 
-export default function CreateRecipe({ units, categories }) {
+export default function EditRecipe({ units, categories }) {
+  const { id } = useParams();
+
   const [fieldValues, setFieldValues] = useState({
     name: '',
     description: '',
-    ingredients: '',
+    ingredients: [],
     category: '',
-    category2: '',
   });
 
-  const [ingredients, setIngredients] = useState([]);
+  useEffect(() => {
+    db.collection('recipes')
+      .doc(id)
+      .get()
+      .then((docRef) => {
+        let data = docRef.data();
+        let ingredient = '';
+
+        data.ingredients.forEach(
+          (element) =>
+            (ingredient +=
+              element.amount + ' ' + element.unit + ' ' + element.name + '\n')
+        );
+
+        data.ingredients = ingredient;
+
+        setFieldValues(data);
+      });
+  }, [id]);
+
+  const [fieldValuesToDatabase, setFieldValuesToDatabase] = useState({
+    name: '',
+    description: '',
+    ingredients: [],
+    category: '',
+  });
 
   const [formWasValidated, setFormWasValidated] = useState(false);
 
@@ -26,7 +53,6 @@ export default function CreateRecipe({ units, categories }) {
     description: useRef(),
     ingredients: useRef(),
     category: useRef(),
-    category2: useRef(),
   };
 
   const [errors, setErrors] = useState({
@@ -81,19 +107,11 @@ export default function CreateRecipe({ units, categories }) {
             name = name.join(' ').replace(/,/g, ' ');
           }
 
-          if (partsOfValue[i][1] === undefined) {
-            ingredients.push({
-              amount: partsOfValue[i][0],
-              unit: '',
-              name: name.toString(),
-            });
-          } else {
-            ingredients.push({
-              amount: partsOfValue[i][0],
-              unit: partsOfValue[i][1],
-              name: name.toString(),
-            });
-          }
+          ingredients.push({
+            amount: partsOfValue[i][0],
+            unit: partsOfValue[i][1],
+            name: name.toString(),
+          });
 
           unitsExist = true;
         } else {
@@ -107,26 +125,23 @@ export default function CreateRecipe({ units, categories }) {
         } else {
           let name = partsOfValue[i].join(' ').replace(/,/g, ' ');
 
-          if (partsOfValue[i][1] === undefined) {
-            ingredients.push({
-              amount: partsOfValue[i][0],
-              unit: '',
-              name: name.toString(),
-            });
-          } else {
-            ingredients.push({
-              amount: partsOfValue[i][0],
-              unit: partsOfValue[i][1],
-              name: name.toString(),
-            });
-          }
+          ingredients.push({
+            amount: partsOfValue[i][0],
+            unit: partsOfValue[i][1],
+            name: name.toString(),
+          });
 
           unitsExist = true;
         }
       }
     }
 
-    setIngredients(ingredients);
+    setFieldValuesToDatabase({
+      name: fieldValues.name,
+      description: fieldValues.description,
+      ingredients: ingredients,
+      category: fieldValues.category,
+    });
 
     return unitsExist;
   }
@@ -161,11 +176,6 @@ export default function CreateRecipe({ units, categories }) {
       )) {
         if (isValid) {
           isValid = validatorFn(value);
-
-          if (fieldValues.category2 !== '' && isValid === false) {
-            isValid = true;
-          }
-
           if (!isValid) {
             const errorText = errorTypes[validationType];
             setErrors((previousErrors) => {
@@ -198,15 +208,7 @@ export default function CreateRecipe({ units, categories }) {
 
   function handleInputBlur(e) {
     const name = e.target.name;
-    if (name === 'category2') {
-      setFieldValues({
-        ...fieldValues,
-        category: e.target.value,
-      });
-      return;
-    } else {
-      validateField(name);
-    }
+    validateField(name);
   }
 
   function handleSubmit(e) {
@@ -216,20 +218,20 @@ export default function CreateRecipe({ units, categories }) {
 
     if (isValid) {
       db.collection('recipes')
-        .add({
-          name: fieldValues.name,
-          description: fieldValues.description,
-          ingredients: ingredients,
-          category: fieldValues.category,
-        })
+        .doc(id)
+        .update(fieldValuesToDatabase)
         .then((docRef) => {
-          setIngredients([]);
+          setFieldValuesToDatabase({
+            name: '',
+            description: '',
+            ingredients: [],
+            category: '',
+          });
           setFieldValues({
             name: '',
             description: '',
-            ingredients: '',
+            ingredients: [],
             category: '',
-            category2: '',
           });
           setFormAlertText('Successful saving');
           setFormAlertType('success');
@@ -242,7 +244,7 @@ export default function CreateRecipe({ units, categories }) {
 
   return (
     <div className="row">
-      <h1>Create a new Recipe</h1>
+      <h1>Edit {fieldValues.name}</h1>
       <form
         onSubmit={handleSubmit}
         noValidate={true}
@@ -288,17 +290,9 @@ export default function CreateRecipe({ units, categories }) {
         <div
           className={`mb-3 ${errors.category !== '' ? 'was-validated' : ''}`}
         >
-          <InputField
-            reference={references.category2}
-            name="category2"
-            labelText="Category"
-            type="text"
-            errors={errors}
-            fieldValues={fieldValues}
-            handleInputBlur={handleInputBlur}
-            handleInputChange={handleInputChange}
-            required={true}
-          />
+          <label htmlFor="category" className="form-label m-2">
+            Category
+          </label>
           <select
             name="category"
             id="category"
@@ -310,10 +304,8 @@ export default function CreateRecipe({ units, categories }) {
             required={true}
           >
             <option value={''}>Choose!</option>
-            {categories.map((category, i) => (
-              <option key={category + i} value={category}>
-                {category}
-              </option>
+            {categories.map((category) => (
+              <option value={category}>{category}</option>
             ))}
           </select>
           <div className="invalid-feedback">{errors.category}</div>
