@@ -19,10 +19,12 @@ import EditRecipe from './components/EditRecipe';
 function App() {
   const [recipes, setRecipes] = useState([]);
   const [units, setUnits] = useState({});
+  const [categories, setCategories] = useState([]);
 
   useEffect(() => {
     const unsubscribe = db.collection('recipes').onSnapshot((snapshot) => {
       const data = [];
+      const categoriesArr = [];
 
       snapshot.docs.forEach((recipe) => {
         const docItem = recipe.data();
@@ -33,9 +35,13 @@ function App() {
           docItem['docId'] = recipe.id;
 
           data.push(docItem);
+          categoriesArr.push(
+            docItem.category[0].toUpperCase() + docItem.category.slice(1)
+          );
         }
       });
 
+      setCategories(categoriesArr);
       setRecipes(data);
     });
     return () => {
@@ -87,16 +93,16 @@ function App() {
         <main className="container mt-5">
           <Switch>
             <Route path="/edit-recipe/:id">
-              <EditRecipe units={units} />
+              <EditRecipe units={units} categories={categories} />
             </Route>
             <Route path="/recipe-page/:id">
               <RecipePage />
             </Route>
             <Route path="/create-recipe">
-              <CreateRecipe units={units} />
+              <CreateRecipe units={units} categories={categories} />
             </Route>
             <Route exact path="/">
-              <Home recipes={recipes} />
+              <Home recipes={recipes} setRecipes={setRecipes} />
             </Route>
           </Switch>
         </main>

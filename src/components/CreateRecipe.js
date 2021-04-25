@@ -10,12 +10,14 @@ export default function CreateRecipe({ units }) {
     name: '',
     description: '',
     ingredients: '',
+    category: '',
   });
 
   const [fieldValuesToDatabase, setFieldValuesToDatabase] = useState({
     name: '',
     description: '',
-    ingredients: '',
+    ingredients: [],
+    category: '',
   });
 
   const [formWasValidated, setFormWasValidated] = useState(false);
@@ -27,12 +29,14 @@ export default function CreateRecipe({ units }) {
     name: useRef(),
     description: useRef(),
     ingredients: useRef(),
+    category: useRef(),
   };
 
   const [errors, setErrors] = useState({
     name: '',
     description: '',
     ingredients: '',
+    category: '',
   });
 
   const validators = {
@@ -45,6 +49,9 @@ export default function CreateRecipe({ units }) {
     ingredients: {
       required: isNotEmpty,
       unitChecker: isUnitExistAndSetIngredients,
+    },
+    category: {
+      required: isNotEmpty,
     },
   };
 
@@ -110,6 +117,7 @@ export default function CreateRecipe({ units }) {
       name: fieldValues.name,
       description: fieldValues.description,
       ingredients: ingredients,
+      category: fieldValues.category,
     });
 
     return unitsExist;
@@ -192,12 +200,14 @@ export default function CreateRecipe({ units }) {
           setFieldValuesToDatabase({
             name: '',
             description: '',
-            ingredients: '',
+            ingredients: [],
+            category: '',
           });
           setFieldValues({
             name: '',
             description: '',
             ingredients: '',
+            category: '',
           });
           setFormAlertText('Successful saving');
           setFormAlertType('success');
@@ -253,6 +263,32 @@ export default function CreateRecipe({ units }) {
           handleInputChange={handleInputChange}
           required={true}
         />
+        <div
+          className={`mb-3 ${errors.category !== '' ? 'was-validated' : ''}`}
+        >
+          <label htmlFor="category" className="form-label m-2">
+            Category
+          </label>
+          <select
+            name="category"
+            id="category"
+            className="form-select m-2"
+            value={fieldValues.category}
+            onChange={handleInputChange}
+            onBlur={handleInputBlur}
+            ref={references.category}
+            required={true}
+          >
+            <option value={''}>Choose!</option>
+            <option value="hungarian">Hungarian</option>
+            <option value="german">German</option>
+            <option value="french">French</option>
+            <option value="british">British</option>
+            <option value="mongolian">Mongolian</option>
+            <option value="chinese">Chinese</option>
+          </select>
+          <div className="invalid-feedback">{errors.category}</div>
+        </div>
         {formAlertText && (
           <div className={`alert mt-3 alert-${formAlertType}`} role="alert">
             {formAlertText}
